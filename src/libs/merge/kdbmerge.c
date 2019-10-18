@@ -694,8 +694,10 @@ static char * getValuesAsArray (KeySet * ks, const Key * arrayStart, Key * infor
 			keyDel (iterator);
 			return NULL;
 		}
+		ELEKTRA_LOG("XYZ looked up key is %s", keyString (lookup));
 		strncat (result, keyString (lookup), size); // size of whole buffer
-		strcat (result, "\n");
+//		strcat (result, "\n");
+		ELEKTRA_LOG("XYZ result atm is %s", result);
 		if (counter >= 2)
 		{
 			int retval = keyDel (lookup);
@@ -790,15 +792,20 @@ static KeySet * ksFromArray (const char * array, int length, Key * informationKe
  */
 static int handleArrays (KeySet * ourSet, KeySet * theirSet, KeySet * baseSet, KeySet * resultSet, Key * informationKey)
 {
+	ELEKTRA_LOG("ASDF in handleArrays");
 	Key * checkedKey;
 	KeySet * toAppend = NULL;
 	while ((checkedKey = ksNext (baseSet)) != NULL)
 	{
+		ELEKTRA_LOG("B");
 		if (elektraArrayValidateName (checkedKey) >= 0)
 		{
 			Key * keyInOur = ksLookup (ourSet, checkedKey, 0);
 			Key * keyInTheir = ksLookup (theirSet, checkedKey, 0);
-			char * baseArray = getValuesAsArray (baseSet, checkedKey, informationKey);
+			ELEKTRA_LOG("C");
+//			char * baseArray = getValuesAsArray (baseSet, checkedKey, informationKey);
+			char * baseArray = "base";
+			ELEKTRA_LOG("base array is %s", baseArray);
 			if (baseArray == NULL)
 			{
 				ELEKTRA_SET_INTERNAL_ERROR (informationKey, "Could not get array from base key set.");
@@ -806,7 +813,10 @@ static int handleArrays (KeySet * ourSet, KeySet * theirSet, KeySet * baseSet, K
 				ksDel (toAppend);
 				return -1;
 			}
-			char * ourArray = getValuesAsArray (ourSet, keyInOur, informationKey);
+//			char * ourArray = getValuesAsArray (ourSet, keyInOur, informationKey);
+			char * ourArray = "our";
+
+			ELEKTRA_LOG("our array is %s", ourArray);
 			if (ourArray == NULL)
 			{
 				ELEKTRA_SET_INTERNAL_ERROR (informationKey, "Could not get array from our key set.");
@@ -815,7 +825,11 @@ static int handleArrays (KeySet * ourSet, KeySet * theirSet, KeySet * baseSet, K
 				ksDel (toAppend);
 				return -1;
 			}
-			char * theirArray = getValuesAsArray (theirSet, keyInTheir, informationKey);
+			//char * theirArray = getValuesAsArray (theirSet, keyInTheir, informationKey);
+			char * theirArray = "their";
+			ELEKTRA_LOG("their array %lu, is %s", strlen(theirArray), theirArray);
+			ELEKTRA_LOG("F");
+			if (ourArray == NULL)
 			if (theirArray == NULL)
 			{
 				ELEKTRA_SET_INTERNAL_ERROR (informationKey, "Could not get array from their key set.");
@@ -826,10 +840,55 @@ static int handleArrays (KeySet * ourSet, KeySet * theirSet, KeySet * baseSet, K
 				return -1;
 			}
 			git_merge_file_result out = { 0 }; // out.ptr will not receive a terminating null character
-			const git_merge_file_input libgit_base = { .ptr = baseArray, .size = strlen (baseArray) };
-			const git_merge_file_input libgit_our = { .ptr = ourArray, .size = strlen (ourArray) };
-			const git_merge_file_input libgit_their = { .ptr = theirArray, .size = strlen (theirArray) };
-			int ret = git_merge_file (&out, &libgit_base, &libgit_our, &libgit_their, 0);
+			git_merge_file_input libgit_base; // initializing with the constant gives a compiler warning => use function instead
+			// changed name in some libgit version
+			git_merge_file_init_input(&libgit_base, GIT_MERGE_FILE_INPUT_VERSION);
+			ELEKTRA_LOG("values for base are %d %s %zu %s %d",
+					libgit_base.version,
+					libgit_base.ptr,
+					libgit_base.size,
+					libgit_base.path,
+					libgit_base.mode);
+			libgit_base.ptr = baseArray;
+			libgit_base.size = strlen (baseArray);
+			libgit_base.path = "default";
+			libgit_base.mode = 0100755;
+			git_merge_file_input libgit_our;
+			git_merge_file_init_input(&libgit_our, GIT_MERGE_FILE_INPUT_VERSION);
+			libgit_our.ptr = ourArray;
+			libgit_our.size = strlen (ourArray);
+			libgit_our.path = "default";
+			libgit_our.mode = 0100755;
+			ELEKTRA_LOG("values for our are %d %s %zu %s %d",
+					libgit_our.version,
+					libgit_our.ptr,
+					libgit_our.size,
+					libgit_our.path,
+					libgit_our.mode);
+			git_merge_file_input libgit_their;
+			git_merge_file_init_input(&libgit_their, GIT_MERGE_FILE_INPUT_VERSION);
+			libgit_their.ptr = theirArray;
+			libgit_their.size = strlen (theirArray);
+			libgit_their.path = "default";
+			libgit_their.mode = 0100755;
+			ELEKTRA_LOG("G");
+			ELEKTRA_LOG("from struct base with %zu is %s",
+				libgit_base.size, libgit_base.ptr);
+			ELEKTRA_LOG("from struct our with %zu is %s",
+				libgit_our.size, libgit_our.ptr);
+			ELEKTRA_LOG("from struct their with %zu is %s",
+				libgit_their.size, libgit_their.ptr);
+			git_libgit2_init();
+			git_libgit2_shutdown();
+			int ret = git_merge_file (&out, &libgit_base,
+				&libgit_our, &libgit_their, 0);
+			ELEKTRA_LOG("H");
+			ELEKTRA_LOG("out len is %zu", out.len);
+			if (out.ptr == NULL) {
+				ELEKTRA_LOG("blub is NULL");
+			} else {
+				ELEKTRA_LOG("output is %s", out.ptr);
+			}
 			if (ret == 0)
 			{
 				toAppend = ksFromArray (out.ptr, out.len, informationKey);
