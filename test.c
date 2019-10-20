@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 int main () {
-//	git_libgit2_init();
+	git_libgit2_init();
 	sleep (1);
 	git_merge_file_result out = { 0 }; // out.ptr will not receive a terminating null character
 	git_merge_file_input libgit_base;
