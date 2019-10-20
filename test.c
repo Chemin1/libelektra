@@ -1,8 +1,9 @@
 #include <git2.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 int main () {
-	git_libgit2_init();
+//	git_libgit2_init();
 	sleep (1);
 	git_merge_file_result out = { 0 }; // out.ptr will not receive a terminating null character
 	git_merge_file_input libgit_base;
@@ -17,7 +18,8 @@ int main () {
 	libgit_our.size = strlen("A");
 	libgit_their.ptr = "A";
 	libgit_their.size = strlen("A");
-	git_merge_file (&out, &libgit_base, &libgit_our, &libgit_their, 0);
+	int exitCode = git_merge_file (&out, &libgit_base, &libgit_our, &libgit_their, 0);
+	printf("Code is %d\n", exitCode);
 	git_merge_file_result_free (&out);
 	git_libgit2_shutdown();
 	sleep (1);
